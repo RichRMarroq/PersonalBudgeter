@@ -119,7 +119,7 @@ def main():
 
                     st.subheader('Calculate Payoff')
                     interest_rate = st.number_input("Enter your Interest Rate in decimal format (2.5% = .025)", format="%0.3f")
-                    monthly_payment = st.number_input("Enter your desired Monthly Payment. If less than minimum, will error.")
+                    monthly_payment = st.number_input("Enter your desired Monthly Payment. If less than minimum, will error.", format="%0.2f")
                     calculate_button = st.button("Calculate Payoff Schedule")
 
                     if interest_rate and monthly_payment and calculate_button:
@@ -129,14 +129,15 @@ def main():
                         #Check if Current Monthly covers monthly interest
                         if float(monthly_payment) > current_interest:
                               st.success(f"Calculating payoff schedule")
-                              time.sleep(4)
+                              #time.sleep(4)
                               d = {'Balance': [starting_balance], 'Monthly Payment': [monthly_payment], 'Monthly Interest': [current_interest], 'Month': [time.strftime("%m-%Y")], 'Total Interest Paid': [interest_spend]}
                               st.session_state.payoff_loan_df = pd.DataFrame(data=d)
                               calculatePayoff(starting_balance, interest_rate, monthly_payment, interest_spend)
                               st.write(st.session_state.payoff_loan_df)
                         else:
                               time.sleep(1)
-                              st.warning(f"Monthly Payment ${monthly_payment} is not enough to cover monthly accruing interest ${current_interest}. Please enter a higher monthly payment")
+                              st.warning(f"Monthly Payment {monthly_payment} is not enough to cover monthly accruing interest {current_interest}. Please enter a higher monthly payment")
+                              time.sleep(5)
                               st.rerun()
                               
 
