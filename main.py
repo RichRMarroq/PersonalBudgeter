@@ -74,7 +74,55 @@ def calculatePayoff(balance, ir, monthly_payment, total_interest):
 
 
       return
-      
+def printTab(df_loan, tabStr):
+      st.session_state.loan_df = df_loan
+
+      #Display only certain colums we want
+      edited_df = st.dataframe(
+            st.session_state.loan_df[["Date", "LoanName", "Total", "UnpaidPrincipalBalanceValue"]],
+            column_config={
+                  "Date": st.column_config.DateColumn("Date", format="MM/DD/YYYY"),
+                  "Payment Amount": st.column_config.NumberColumn("Total", format="%.2f USD"),
+                  "Outstanding Balance": st.column_config.NumberColumn("UnpaidPrincipalBalanceValue", format="%.2f USD")
+            },
+            hide_index=True,
+            use_container_width=True,
+            key="edited_dataframe"
+            )
+
+      st.subheader('Loan Payment Summary')
+      #Sum all the interest spent already
+      interest_spend = st.session_state.loan_df["Interest"].sum()
+      st.write(f"You have spent ${interest_spend} USD on Interest")
+
+      st.subheader('Loan Total Graph')
+      #Visualize current life of loan
+      plot_loan_graph(st.session_state.loan_df)
+
+      st.subheader('Calculate Payoff')
+      #Display a table showing monthly payments and total interest paid
+      interest_rate = st.number_input("Enter your Interest Rate in decimal format (2.5% = .025)", format="%0.3f", key=tabStr+'interest')
+      monthly_payment = st.number_input("Enter your desired Monthly Payment. If less than minimum, will error.", format="%0.2f", key=tabStr+'monthly')
+      calculate_button = st.button("Calculate Payoff Schedule", key=tabStr+'button')
+
+      if interest_rate and monthly_payment and calculate_button:
+            starting_balance = st.session_state.loan_df["UnpaidPrincipalBalanceValue"].values[0];
+            current_interest = calculateMonthlyInterest(starting_balance, interest_rate)
+
+            #Check if Current Monthly covers monthly interest
+            if float(monthly_payment) > current_interest:
+                  st.success(f"Calculating payoff schedule")
+                  #time.sleep(4)
+                  d = {'Balance': [starting_balance], 'Monthly Payment': [monthly_payment], 'Monthly Interest': [current_interest], 'Month': [time.strftime("%m-%Y")], 'Total Interest Paid': [interest_spend]}
+                  st.session_state.payoff_loan_df = pd.DataFrame(data=d)
+                  calculatePayoff(starting_balance, interest_rate, monthly_payment, interest_spend)
+                  st.write(st.session_state.payoff_loan_df)
+            else:
+                  time.sleep(1)
+                  st.warning(f"Monthly Payment {monthly_payment} is not enough to cover monthly accruing interest {current_interest}. Please enter a higher monthly payment")
+                  time.sleep(5)
+                  st.rerun()
+      return
 
 def main():
     st.title("Student Loan Tracker")
@@ -94,61 +142,13 @@ def main():
             #TODO: Create tabs dynamically, for now assume 4
             tab1, tab2, tab3, tab4 = st.tabs(loans)
             with tab1:
-                    st.session_state.loan_df = df_loan_dict[loans[0]]
-                    #totalPrincipalPaid = loan_dict[loan_dict['Principal'] < 0.0].sum()
-                    edited_df = st.dataframe(
-                    st.session_state.loan_df[["Date", "LoanName", "Total", "UnpaidPrincipalBalanceValue"]],
-                    column_config={
-                        "Date": st.column_config.DateColumn("Date", format="MM/DD/YYYY"),
-                        "Payment Amount": st.column_config.NumberColumn("Total", format="%.2f USD"),
-                        "Outstanding Balance": st.column_config.NumberColumn("UnpaidPrincipalBalanceValue", format="%.2f USD")
-                    },
-                    hide_index=True,
-                    use_container_width=True,
-                    key="category_editor"
-                )
-                    #st.write(loan_dict)
-                    #st.write(totalPrincipalPaid)
-
-                    st.subheader('Loan Payment Summary')
-                    interest_spend = st.session_state.loan_df["Interest"].sum()
-                    st.write(f"You have spent ${interest_spend} USD on Interest")
-
-                    st.subheader('Loan Total Graph')
-                    plot_loan_graph(st.session_state.loan_df)
-
-                    st.subheader('Calculate Payoff')
-                    interest_rate = st.number_input("Enter your Interest Rate in decimal format (2.5% = .025)", format="%0.3f")
-                    monthly_payment = st.number_input("Enter your desired Monthly Payment. If less than minimum, will error.", format="%0.2f")
-                    calculate_button = st.button("Calculate Payoff Schedule")
-
-                    if interest_rate and monthly_payment and calculate_button:
-                        starting_balance = st.session_state.loan_df["UnpaidPrincipalBalanceValue"].values[0];
-                        current_interest = calculateMonthlyInterest(starting_balance, interest_rate)
-
-                        #Check if Current Monthly covers monthly interest
-                        if float(monthly_payment) > current_interest:
-                              st.success(f"Calculating payoff schedule")
-                              #time.sleep(4)
-                              d = {'Balance': [starting_balance], 'Monthly Payment': [monthly_payment], 'Monthly Interest': [current_interest], 'Month': [time.strftime("%m-%Y")], 'Total Interest Paid': [interest_spend]}
-                              st.session_state.payoff_loan_df = pd.DataFrame(data=d)
-                              calculatePayoff(starting_balance, interest_rate, monthly_payment, interest_spend)
-                              st.write(st.session_state.payoff_loan_df)
-                        else:
-                              time.sleep(1)
-                              st.warning(f"Monthly Payment {monthly_payment} is not enough to cover monthly accruing interest {current_interest}. Please enter a higher monthly payment")
-                              time.sleep(5)
-                              st.rerun()
-                              
-
-                    
-
+                  printTab(df_loan_dict[loans[0]],"tab1")
             with tab2:
-                    st.write(df_loan_dict[loans[1]])
+                  printTab(df_loan_dict[loans[1]],"tab2")
             with tab3:
-                    st.write(df_loan_dict[loans[2]])
+                  printTab(df_loan_dict[loans[2]],"tab3")
             with tab4:
-                    st.write(df_loan_dict[loans[3]])
+                  printTab(df_loan_dict[loans[3]],"tab4")
 
 
 main()
